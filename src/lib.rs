@@ -68,6 +68,11 @@ pub fn add_task(conn: &Connection, task: &Task) -> Result<()> {
 
 ///Shows all tasks in a table
 pub fn show_tasks(conn: &Connection, status: &char) -> Result<()> {
+    let mut records: Vec<Task> = Vec::new();
+    let mut qtd_done: u8 = 0;
+    let mut qtd_pending: u8 = 0;
+    let mut message: String = String::from("");
+
     let query = match status {
         'd' | 'D' => format!("SELECT * FROM {TABLE} WHERE status = '{DONE}'"),
         'p' | 'P' => format!("SELECT * FROM {TABLE} WHERE status = '{PENDING}'"),
@@ -85,12 +90,26 @@ pub fn show_tasks(conn: &Connection, status: &char) -> Result<()> {
         })
     })?;
 
-    let mut records: Vec<Task> = Vec::new();
     for i in result_iter {
-        records.push(i.unwrap());
+        if &i.as_ref().unwrap().status == DONE {
+            qtd_done += 1;
+        } else {
+            qtd_pending += 1;
+        }
+        records.push(i?);
     }
     let table = Table::new(records).with(Style::modern()).to_string();
-    println!("{}", table);
+
+    if qtd_done > 0 {
+        message.push_str(&format!("\n{DONE}: {qtd_done}"));
+    }
+    if qtd_pending > 0 {
+        message.push_str(&format!("\n{PENDING}: {qtd_pending}"));
+    }
+
+    println!("{table}");
+    println!("{message}");
+
     Ok(())
 }
 
